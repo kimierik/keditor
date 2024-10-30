@@ -1,4 +1,5 @@
 const std = @import("std");
+const rl = @import("raylib");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -6,18 +7,20 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "texteditor",
+        .name = "ktexteditor",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
     exe.linkLibC();
 
-    const raylib = b.dependency("raylib", .{});
     const raygui = b.dependency("raygui", .{});
+    _ = raygui;
+    const raylib = try rl.addRaylib(b, target, optimize, .{
+        .raygui = true,
+    });
 
-    exe.linkLibrary(raylib.artifact("raylib"));
-    exe.addIncludePath(raygui.path("src"));
+    exe.linkLibrary(raylib);
 
     b.installArtifact(exe);
 
