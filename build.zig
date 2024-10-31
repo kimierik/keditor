@@ -12,10 +12,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    exe.linkLibC();
 
-    const raygui = b.dependency("raygui", .{});
-    _ = raygui;
     const raylib = try rl.addRaylib(b, target, optimize, .{
         .raygui = true,
     });
