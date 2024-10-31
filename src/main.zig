@@ -1,26 +1,45 @@
 const std = @import("std");
+const raylib = @import("raylib.zig");
 
-pub const rl = @cImport({
-    @cInclude("raylib.h");
-    @cDefine("RAYGUI_IMPLEMENTATION", "1");
-    @cInclude("raygui.h");
-});
+const GapBuffer = @import("gapBuffer.zig");
+
+const rl = raylib.raylib;
+
+pub fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
+    if (key >= 'A' and key <= 'Z') {
+        return try buffer.insert(@intCast(key));
+    }
+    if (key == rl.KEY_LEFT) {
+        buffer.left();
+    }
+
+    if (key == rl.KEY_RIGHT) {
+        buffer.right();
+    }
+}
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
     rl.InitWindow(800, 800, "keditor");
+
+    var textBuffer = try GapBuffer.GapBuffer(u8).init(allocator);
+
     defer rl.CloseWindow();
-    var showMessageBox = false;
     while (!rl.WindowShouldClose()) {
+        const key = rl.GetKeyPressed();
+        try executeInput(key, &textBuffer);
+
         rl.BeginDrawing();
         defer rl.EndDrawing();
+        rl.ClearBackground(rl.RAYWHITE);
 
-        if (rl.GuiButton(rl.Rectangle{ .x = 24, .y = 24, .width = 120, .height = 30 }, "#191#Show Message") == 1)
-            showMessageBox = true;
+        const a = try textBuffer.getList(allocator);
+        defer allocator.free(a);
 
-        if (showMessageBox) {
-            const result = rl.GuiMessageBox(rl.Rectangle{ .x = 85, .y = 70, .width = 250, .height = 100 }, "#191#Message Box", "Hi! This is a message!", "Nice;Cool");
+        const txt = @as([*c]u8, @ptrCast(a));
 
-            if (result >= 0) showMessageBox = false;
-        }
+        // we need to do some math to see if we go over the thing
+        rl.DrawText(txt, 10, 10, 27, rl.BLACK);
     }
 }

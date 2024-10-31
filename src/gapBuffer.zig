@@ -77,6 +77,20 @@ pub fn GapBuffer(T: type) type {
             self.items[self.position + self.gap_size - 1] = 0; // or whattever we end up defining as the gap character
             self.position += 1;
         }
+
+        /// gets a caller owned null terminated slice with the gap removed
+        /// will get invalidated when something is inserted
+        pub fn getList(self: Self, allocator: std.mem.Allocator) ![]T {
+            const left_slice = self.items[0..self.position];
+            const right_slice = self.items[self.position + self.gap_size .. self.items.len];
+            const items = try allocator.alloc(T, left_slice.len + right_slice.len + 1);
+
+            @memcpy(items.ptr, left_slice);
+            @memcpy(items.ptr + left_slice.len, right_slice);
+            items[left_slice.len + right_slice.len] = '\x00';
+
+            return items;
+        }
     };
 }
 
