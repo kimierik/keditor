@@ -59,6 +59,18 @@ pub fn GapBuffer(T: type) type {
             self.gap_size -= 1;
         }
 
+        /// deletes an item and moves one to the left
+        /// Returns the deleted item. return null if we cannot delete
+        pub fn delete(self: *Self) ?T {
+            if (self.position == 0)
+                return null;
+
+            const tmp = self.items[self.position];
+            self.left();
+            self.gap_size += 1;
+            return tmp;
+        }
+
         pub fn left(self: *Self) void {
             if (self.position == 0)
                 return;
