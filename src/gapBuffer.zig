@@ -65,7 +65,7 @@ pub fn GapBuffer(T: type) type {
             if (self.position == 0)
                 return null;
 
-            const tmp = self.items[self.position];
+            const tmp = self.items[self.position - 1];
             self.left();
             self.gap_size += 1;
             return tmp;
