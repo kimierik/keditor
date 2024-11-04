@@ -1,5 +1,8 @@
 const std = @import("std");
 
+//TODO:
+//add writer() to buffer class
+
 pub fn GapBuffer(T: type) type {
     return struct {
         const Self = @This();
@@ -79,6 +82,7 @@ pub fn GapBuffer(T: type) type {
             self.items[self.position + self.gap_size] = self.items[self.position];
             self.items[self.position] = 0; // or whattever we end up defining as the gap character
         }
+
         pub fn right(self: *Self) void {
             // we should not be able to move r if there is no characters to the right of us aka (self.position+ self.gapsize=self.items.len)
             // i do not know how to program
