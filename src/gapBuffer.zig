@@ -69,29 +69,34 @@ pub fn GapBuffer(T: type) type {
                 return null;
 
             const tmp = self.items[self.position - 1];
-            self.left();
+            _ = self.left();
             self.gap_size += 1;
             return tmp;
         }
 
-        pub fn left(self: *Self) void {
+        /// returns is movement was success
+        pub fn left(self: *Self) bool {
             if (self.position == 0)
-                return;
+                return false;
 
             self.position -= 1;
             self.items[self.position + self.gap_size] = self.items[self.position];
             self.items[self.position] = 0; // or whattever we end up defining as the gap character
+            return true;
         }
 
-        pub fn right(self: *Self) void {
+        /// returns is movement was success
+        pub fn right(self: *Self) bool {
             // we should not be able to move r if there is no characters to the right of us aka (self.position+ self.gapsize=self.items.len)
             // i do not know how to program
             if (self.position == self.items.len or self.position + 1 == self.items.len)
-                return;
+                return false;
+            // if pos + gap size is is over we need to return
 
-            self.items[self.position] = self.items[self.position + self.gap_size - 1];
-            self.items[self.position + self.gap_size - 1] = 0; // or whattever we end up defining as the gap character
+            self.items[self.position] = self.items[self.position + self.gap_size];
+            //self.items[self.position + self.gap_size - 1] = 0; // or whattever we end up defining as the gap character
             self.position += 1;
+            return true;
         }
 
         /// gets a caller owned null terminated slice with the gap removed
@@ -151,7 +156,7 @@ test "insert and move left" {
     try gp.insert('g');
     try gp.insert('h');
     try gp.insert('i');
-    gp.left();
+    _ = gp.left();
     try gp.insert('j');
     try gp.insert('k');
     try gp.insert('l');
@@ -169,7 +174,7 @@ test "insert and move right" {
     try gp.insert('e');
     try gp.insert('f');
     try gp.insert('g');
-    gp.right();
+    _ = gp.right();
     try gp.insert('h');
     try gp.insert('i');
     try gp.insert('j');

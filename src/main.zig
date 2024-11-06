@@ -31,20 +31,36 @@ fn readFileToBuffer(fileName: []const u8, buffer: *GapBuffer.GapBuffer(u8)) !voi
 
         if (c == 0) {
             reading = false;
-            std.debug.print("endreading\n", .{});
             continue;
         }
-        std.debug.print("adding char {d}\n", .{c});
 
         try buffer.insert(c);
     }
 
     for (0..buffer.position) |_| {
-        buffer.left();
+        _ = buffer.left();
     }
 }
 
-pub fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
+fn setCursorPrevLine(buffer: *GapBuffer.GapBuffer(u8)) void {
+    const slice = buffer.items[0 .. buffer.position - 1];
+    const i = std.mem.lastIndexOf(u8, slice, "\n");
+
+    if (i) |index| {
+        const n = slice.len - index;
+        state.cursorColumnC = n + 1 + 1; // 1 since first line does not have a \n, one bc we remove one at the end of this if statement
+        state.cursorLineC -= 1;
+    } else {
+        state.cursorColumnC = buffer.position + 2; // 1 since first line does not have a \n, one bc we remove one at the end of this if statement
+        state.cursorLineC -= 1;
+    }
+}
+fn setCursorNextLine() void {
+    state.cursorLineC += 1;
+    state.cursorColumnC = 1;
+}
+
+fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
     if (key >= 'A' and key <= 'Z') {
         state.cursorColumnC += 1;
         return try buffer.insert(@intCast(key));
@@ -59,18 +75,7 @@ pub fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
         const char = buffer.delete();
         if (char) |c| {
             if (c == '\n') {
-                const slice = buffer.items[0 .. buffer.position - 1];
-                const i = std.mem.lastIndexOf(u8, slice, "\n");
-
-                if (i) |index| {
-                    const n = slice.len - index;
-                    state.cursorColumnC = n + 1 + 1; // 1 since first line does not have a \n, one bc we remove one at the end of this if statement
-                    state.cursorLineC -= 1;
-                } else {
-                    std.debug.print("lc:{d}\n", .{0});
-                    state.cursorColumnC = buffer.position + 2; // 1 since first line does not have a \n, one bc we remove one at the end of this if statement
-                    state.cursorLineC -= 1;
-                }
+                setCursorPrevLine(buffer);
             }
         }
         state.cursorColumnC -= 1;
@@ -83,13 +88,21 @@ pub fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
     }
 
     if (key == rl.KEY_LEFT) {
-        state.cursorColumnC -= 1;
-        buffer.left();
+        if (buffer.left()) {
+            if (buffer.items[buffer.position + buffer.gap_size] == '\n') {
+                setCursorPrevLine(buffer);
+            }
+            state.cursorColumnC -= 1;
+        }
     }
 
     if (key == rl.KEY_RIGHT) {
-        state.cursorColumnC += 1;
-        buffer.right();
+        if (buffer.right()) {
+            state.cursorColumnC += 1;
+            if (buffer.items[buffer.position - 1] == '\n') {
+                setCursorNextLine();
+            }
+        }
     }
 }
 
@@ -159,7 +172,7 @@ fn parseCmd(allocator: std.mem.Allocator, args: [][]u8) !void {
     var textBuffer = try GapBuffer.GapBuffer(u8).init(allocator);
 
     try readFileToBuffer(cmd, &textBuffer);
-    printBuffer(&textBuffer);
+    //printBuffer(&textBuffer);
 
     try startGui(allocator, &textBuffer);
 
@@ -176,6 +189,7 @@ pub fn main() !void {
     // handle arguments
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    rl.SetTraceLogLevel(rl.LOG_NONE);
 
     if (args.len == 1) {
         var textBuffer = try GapBuffer.GapBuffer(u8).init(allocator);
