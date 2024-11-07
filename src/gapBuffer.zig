@@ -174,6 +174,8 @@ test "insert and move right" {
     try gp.insert('e');
     try gp.insert('f');
     try gp.insert('g');
+    _ = gp.left();
+    _ = gp.left();
     _ = gp.right();
     try gp.insert('h');
     try gp.insert('i');
@@ -181,5 +183,5 @@ test "insert and move right" {
     try gp.insert('k');
     try gp.insert('l');
     const s = gp.items[0..gp.position];
-    try std.testing.expect(std.mem.eql(u8, s, "abcdefg\xAAhijkl"));
+    try std.testing.expect(std.mem.eql(u8, s, "abcdefhijkl"));
 }
