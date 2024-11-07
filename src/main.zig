@@ -13,9 +13,14 @@ inline fn intCastAs(T: type, val: anytype) T {
 const State = struct {
     cursorLineC: usize,
     cursorColumnC: usize,
+    fileName: ?[]u8,
 };
 
-var state: State = .{ .cursorLineC = 0, .cursorColumnC = 1 };
+var state: State = .{
+    .cursorLineC = 0,
+    .cursorColumnC = 1,
+    .fileName = null,
+};
 
 var globalAllocator: std.mem.Allocator = undefined;
 
@@ -60,10 +65,15 @@ fn setCursorNextLine() void {
     state.cursorColumnC = 1;
 }
 
+/// get lowercase or uppercase of key
+fn getAlpha(key: c_int) c_int {
+    return key + (@as(c_int, @intFromBool(!rl.IsKeyDown(rl.KEY_LEFT_SHIFT))) * 32);
+}
+
 fn executeInput(key: c_int, buffer: *GapBuffer.GapBuffer(u8)) !void {
     if (key >= 'A' and key <= 'Z') {
         state.cursorColumnC += 1;
-        return try buffer.insert(@intCast(key));
+        return try buffer.insert(@intCast(getAlpha(key)));
     }
 
     if (key == rl.KEY_SPACE) {
@@ -170,6 +180,8 @@ fn parseCmd(allocator: std.mem.Allocator, args: [][]u8) !void {
     }
 
     var textBuffer = try GapBuffer.GapBuffer(u8).init(allocator);
+
+    state.fileName = cmd;
 
     try readFileToBuffer(cmd, &textBuffer);
     //printBuffer(&textBuffer);
