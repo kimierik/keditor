@@ -25,7 +25,9 @@ var state: State = .{
 var globalAllocator: std.mem.Allocator = undefined;
 
 fn readFileToBuffer(fileName: []const u8, buffer: *GapBuffer.GapBuffer(u8)) !void {
+    // if file not open create it
     const file = try std.fs.cwd().openFile(fileName, .{});
+    defer file.close();
 
     var reading = true;
     while (reading) {
@@ -45,6 +47,17 @@ fn readFileToBuffer(fileName: []const u8, buffer: *GapBuffer.GapBuffer(u8)) !voi
     for (0..buffer.position) |_| {
         _ = buffer.left();
     }
+}
+
+fn writeToFile(buffer: *GapBuffer.GapBuffer(u8), allocator: std.mem.Allocator, fileName: []const u8) !void {
+    const file_e = std.fs.cwd().openFile(fileName, .{}) catch |e| if (e == error.FileNotFound) std.fs.cwd().createFile(fileName, .{}) else e;
+
+    const file: std.fs.File = try file_e;
+    defer file.close();
+
+    const s = try buffer.getList(allocator);
+    defer allocator.free(s);
+    _ = try file.write(s);
 }
 
 fn setCursorPrevLine(buffer: *GapBuffer.GapBuffer(u8)) void {
@@ -136,6 +149,17 @@ fn startGui(allocator: std.mem.Allocator, textBuffer: *GapBuffer.GapBuffer(u8)) 
         defer rl.EndDrawing();
         rl.ClearBackground(rl.RAYWHITE);
 
+        if (rl.GuiButton(rl.Rectangle{ .x = 0, .y = 0, .width = 50, .height = 20 }, "save") == 1) {
+            if (state.fileName) |fname| {
+                std.debug.print("saving to: {s}\n", .{fname});
+                try writeToFile(textBuffer, allocator, fname);
+                //
+            } else {
+                std.debug.print("no file to save to\n", .{});
+            }
+            // save button pressed
+        }
+
         const a = try textBuffer.getList(allocator);
         defer allocator.free(a);
 
@@ -183,8 +207,8 @@ fn parseCmd(allocator: std.mem.Allocator, args: [][]u8) !void {
 
     state.fileName = cmd;
 
-    try readFileToBuffer(cmd, &textBuffer);
-    //printBuffer(&textBuffer);
+    // if error here then... the file does not exist
+    readFileToBuffer(cmd, &textBuffer) catch {};
 
     try startGui(allocator, &textBuffer);
 
